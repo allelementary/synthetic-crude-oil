@@ -1,66 +1,21 @@
-## Foundry
+# Synthetic Crude Oil Token
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Tokenized Crude Oil smart contract provides broader access to trading and investment opportunities. It enables fractional trading of crude oil assets, reducing barriers and bypassing bureaucratic restrictions, allowing for more efficient and inclusive participation.
 
-Foundry consists of:
+## About
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Collateral: WETH / DAI
+Stability Mechanism: Algorithmic
+Using: Chainlink price feeds, Chainlink CCIP
 
-## Documentation
+Synthetic Crude Oil Token (sOIL) is not backed by a real-world commodity but rather by other cryptocurrencies, specifically WETH and DAI. DAI was chosen over other stablecoins because of its decentralized nature.
 
-https://book.getfoundry.sh/
+To mint sOIL, users deposit either WETH or DAI. To maintain price stability, sOIL requires 150% over-collateralization. For instance, to mint $100 worth of sOIL, a user must lock $150 worth of WETH or DAI. If the collateral or underlying asset prices fluctuate, causing the collateralization rate to drop below 150%, the position can be liquidated by other users who receive a 10% bonus in the underlying asset.
 
-## Usage
+### Liquidation mechanism
 
-### Build
+The liquidation mechanism ensures that the asset's value closely aligns with its underlying collateral. This is a common practice for stablecoins to keep their value pegged, usually around $1. When a stablecoin is backed by real dollars, the amount in the bank should match the number of tokens minted.
 
-```shell
-$ forge build
-```
+In our case, we aim for the synthetic crude oil token (sOIL) to mirror the value of real crude oil. To achieve this, users must maintain collateral assets exceeding the value of the sOIL they have minted. Due to the volatility of the underlying assets, a 1:1 collateral-to-token ratio would likely result in frequent liquidations. Therefore, over-collateralization is required.
 
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+If the health factor of a position drops below a specific threshold—for instance, if the collateral value falls below 150% of the sOIL value (a 1:1.5 ratio)—other users can liquidate that position. In the liquidation process, the minted sOIL is burned, and the liquidator receives the underlying collateral at a 10% discount as a reward. This discount incentivizes liquidators to maintain the system's stability.
