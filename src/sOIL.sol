@@ -7,13 +7,13 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-contract sCrudeOil is ERC20, ReentrancyGuard {
-    error sCrudeOil__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
-    error sCrudeOil__TransferFailed();
-    error sCrudeOil__HealthFactorOk();
-    error sCrudeOil__TokenNotAllowed(address token);
-    error sCrudeOil__NeedsMoreThanZero();
-    error sCrudeOil__BreaksHealthFactor(uint256 healthFactor);
+contract sOIL is ERC20, ReentrancyGuard {
+    error sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
+    error sOIL__TransferFailed();
+    error sOIL__HealthFactorOk();
+    error sOIL__TokenNotAllowed(address token);
+    error sOIL__NeedsMoreThanZero();
+    error sOIL__BreaksHealthFactor(uint256 healthFactor);
 
     address private crudeOilUsdPriceFeed;
 
@@ -30,18 +30,6 @@ contract sCrudeOil is ERC20, ReentrancyGuard {
 
     address[] private s_collateralTokens;
 
-    /* todo: 
-    * - Deploy missing ERC-20 tokens for testing
-    * - Deploy sCrudeOil contract
-    * - Add negative tests
-    * - Add events
-    * ------------
-    * - Add CCIP cross-chain proxy to fetch WTI Crude Oil price feeds from Arbitrum
-    * - Add universal functions for native tokens
-    * - Use CCIP to turn the project into multi-chain
-    * - Turn the project into Commodity Tokenization Factory
-    */
-
     ///////////////////
     // Events
     ///////////////////
@@ -55,14 +43,14 @@ contract sCrudeOil is ERC20, ReentrancyGuard {
 
     modifier isAllowedToken(address token) {
         if (s_priceFeeds[token] == address(0)) {
-            revert sCrudeOil__TokenNotAllowed(token);
+            revert sOIL__TokenNotAllowed(token);
         }
         _;
     }
 
     modifier moreThanZero(uint256 amount) {
         if (amount == 0) {
-            revert sCrudeOil__NeedsMoreThanZero();
+            revert sOIL__NeedsMoreThanZero();
         }
         _;
     }
@@ -71,9 +59,9 @@ contract sCrudeOil is ERC20, ReentrancyGuard {
         address _crudeOilUsdPriceFeed,
         address[] memory collateralAddresses,
         address[] memory priceFeedAddresses
-    ) ERC20("Synthetic Crude Oil", "sCRUDEOIL") {
+    ) ERC20("Synthetic Crude Oil", "sOIL") {
         if (collateralAddresses.length != priceFeedAddresses.length) {
-            revert sCrudeOil__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
+            revert sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
         }
 
         crudeOilUsdPriceFeed = _crudeOilUsdPriceFeed;
@@ -97,7 +85,7 @@ contract sCrudeOil is ERC20, ReentrancyGuard {
         s_collateralPerUser[msg.sender][collateral] += amount;
         bool success = IERC20(collateral).transferFrom(msg.sender, address(this), amount);
         if (!success) {
-            revert sCrudeOil__TransferFailed();
+            revert sOIL__TransferFailed();
         }
         emit CollateralDeposited(msg.sender, collateral, amount);
     }
@@ -133,7 +121,7 @@ contract sCrudeOil is ERC20, ReentrancyGuard {
         revertIfHealthFactorIsBroken(from);
         bool success = IERC20(collateral).transfer(to, amountCollateralToRedeem);
         if (!success) {
-            revert sCrudeOil__TransferFailed();
+            revert sOIL__TransferFailed();
         }
     }
 
@@ -155,7 +143,7 @@ contract sCrudeOil is ERC20, ReentrancyGuard {
     {
         uint256 startingUserHealthFactor = getHealthFactor(user);
         if (startingUserHealthFactor >= MIN_HEALTH_FACTOR) {
-            revert sCrudeOil__HealthFactorOk();
+            revert sOIL__HealthFactorOk();
         }
         uint256 oilUsdToCover = getUsdAmountFromOil(oilAmountToCover); // 0.5 oil == $50
         uint256 bonusCollateral = (oilUsdToCover * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION; // $5
@@ -172,7 +160,7 @@ contract sCrudeOil is ERC20, ReentrancyGuard {
     function revertIfHealthFactorIsBroken(address user) internal view {
         uint256 healthFactor = getHealthFactor(user);
         if (healthFactor < MIN_HEALTH_FACTOR) {
-            revert sCrudeOil__BreaksHealthFactor(healthFactor);
+            revert sOIL__BreaksHealthFactor(healthFactor);
         }
     }
 

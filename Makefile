@@ -25,4 +25,4 @@ deploy_dai:
 deploy_oil:
 	echo $(AMOY_RPC_URL)
 	echo $(SEPOLIA_RPC_URL)
-	@forge script script/DeploysCrudeOil.s.sol:DeploysCrudeOil $(NETWORK_ARGS)
+	@forge script script/Deploy_sOIL.s.sol:Deploy_sOIL $(NETWORK_ARGS)
