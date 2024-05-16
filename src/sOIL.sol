@@ -17,7 +17,7 @@ contract sOIL is ERC20, ReentrancyGuard {
 
     address private crudeOilUsdPriceFeed;
 
-    uint256 private constant LIQUIDATION_TRESHOLD = 67; // For 67 overcollateralized | 80 for 125%
+    uint256 private constant LIQUIDATION_TRESHOLD = 67; // For 150% overcollateralized | 80 for 125%
     uint256 private constant LIQUIDATION_BONUS = 10; // This means you'll get assets with 10% discount when liquidating
     uint256 private constant LIQUIDATION_PRECISION = 100;
     uint256 public constant PRECISION = 1e18;
@@ -169,7 +169,7 @@ contract sOIL is ERC20, ReentrancyGuard {
         return _calculateHealthFactor(totalOilMintedValueInUsd, totalCollateralValueInUsd);
     }
 
-    // WTI crude oil has 8 decimals and available at BNB and Arbitrum chains
+    // WTI crude oil has 8 decimals
     // For consistency the result would have 18 decimals
     function getUsdAmountFromOil(uint256 amountOilInWei) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(crudeOilUsdPriceFeed);
@@ -215,6 +215,15 @@ contract sOIL is ERC20, ReentrancyGuard {
             totalCollateralValueInUsd += getUsdAmountFromToken(token, amount);
         }
         return totalCollateralValueInUsd;
+    }
+
+    function getAccountCollateralAmount(address user, address collateral)
+        public
+        view
+        isAllowedToken(collateral)
+        returns (uint256)
+    {
+        return s_collateralPerUser[user][collateral];
     }
 
     /*
