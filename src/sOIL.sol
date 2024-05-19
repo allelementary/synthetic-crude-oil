@@ -6,6 +6,8 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {PriceFeedProxy} from "./PriceFeedProxy.sol";
+import {MessageSender} from "./ccip/Sender.sol";
 
 contract sOIL is ERC20, ReentrancyGuard {
     error sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
@@ -15,7 +17,8 @@ contract sOIL is ERC20, ReentrancyGuard {
     error sOIL__NeedsMoreThanZero();
     error sOIL__BreaksHealthFactor(uint256 healthFactor);
 
-    address private crudeOilUsdPriceFeed;
+    address private priceFeedProxy;
+    uint64 public chainSelector;
 
     uint256 private constant LIQUIDATION_TRESHOLD = 67; // For 150% overcollateralized | 80 for 125%
     uint256 private constant LIQUIDATION_BONUS = 10; // This means you'll get assets with 10% discount when liquidating
@@ -36,6 +39,15 @@ contract sOIL is ERC20, ReentrancyGuard {
     // todo: do we need more events? Liquidated, burned, minted?
     event CollateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
     event CollateralRedeemed(address indexed redeemFrom, address indexed redeemTo, address token, uint256 amount);
+    event PositionLiquidated(
+        address indexed liquidator,
+        address indexed user,
+        address addressCollateral,
+        uint256 amountCollateral,
+        uint256 amountOilCovered
+    );
+    event OilBurned(address indexed user, uint256 amount);
+    event OilMinted(address indexed user, uint256 amount);
 
     ///////////////////
     // Modifiers
@@ -56,15 +68,17 @@ contract sOIL is ERC20, ReentrancyGuard {
     }
 
     constructor(
-        address _crudeOilUsdPriceFeed,
+        address _priceFeedProxy,
         address[] memory collateralAddresses,
-        address[] memory priceFeedAddresses
+        address[] memory priceFeedAddresses,
+        uint64 _chainSelector
     ) ERC20("Synthetic Crude Oil", "sOIL") {
         if (collateralAddresses.length != priceFeedAddresses.length) {
             revert sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
         }
 
-        crudeOilUsdPriceFeed = _crudeOilUsdPriceFeed;
+        priceFeedProxy = _priceFeedProxy;
+        chainSelector = _chainSelector;
         for (uint256 i = 0; i < collateralAddresses.length; i++) {
             s_priceFeeds[collateralAddresses[i]] = priceFeedAddresses[i];
             s_collateralTokens.push(collateralAddresses[i]);
@@ -87,6 +101,7 @@ contract sOIL is ERC20, ReentrancyGuard {
         if (!success) {
             revert sOIL__TransferFailed();
         }
+
         emit CollateralDeposited(msg.sender, collateral, amount);
     }
 
@@ -94,6 +109,8 @@ contract sOIL is ERC20, ReentrancyGuard {
         s_oilMintedPerUser[msg.sender] += amountToMint;
         revertIfHealthFactorIsBroken(msg.sender);
         _mint(msg.sender, amountToMint);
+
+        emit OilMinted(msg.sender, amountToMint);
     }
 
     function redeemAndBurn(address collateral, uint256 amountCollateralToRedeem, uint256 amountOilToBurn)
@@ -104,6 +121,8 @@ contract sOIL is ERC20, ReentrancyGuard {
     {
         _burnOil(msg.sender, msg.sender, amountOilToBurn);
         _redeem(msg.sender, msg.sender, collateral, amountCollateralToRedeem);
+
+        emit OilBurned(msg.sender, amountOilToBurn);
     }
 
     // maybe just run redeem with 0 amount to burn
@@ -128,6 +147,8 @@ contract sOIL is ERC20, ReentrancyGuard {
     function burn(uint256 amountOilToBurn) public moreThanZero(amountOilToBurn) {
         _burnOil(msg.sender, msg.sender, amountOilToBurn);
         revertIfHealthFactorIsBroken(msg.sender);
+
+        emit OilBurned(msg.sender, amountOilToBurn);
     }
 
     function _burnOil(address user, address liquidator, uint256 amountOilToBurn) private {
@@ -151,6 +172,24 @@ contract sOIL is ERC20, ReentrancyGuard {
         uint256 amountCollateralToRedeem = getTokenAmountFromUsd(collateral, oilUsdToCover + bonusCollateral); // $55 of weth
         _burnOil(user, msg.sender, oilAmountToCover);
         _redeem(user, msg.sender, collateral, amountCollateralToRedeem);
+
+        emit PositionLiquidated(msg.sender, user, collateral, amountCollateralToRedeem, oilAmountToCover);
+    }
+
+    /**
+     *
+     * @param destinationChainSelector ChainSelector of the destination chain the price should be updated at
+     * @param payFeesIn LINK or Native, 0 for LINK, 1 for Native
+     */
+    function requestCrudeOilPriceUpdateOnDestinationChain(
+        uint64 destinationChainSelector,
+        MessageSender.PayFeesIn payFeesIn
+    ) public {
+        PriceFeedProxy(priceFeedProxy).requestPrice(destinationChainSelector, payFeesIn);
+    }
+
+    function updateCrudeOilPriceOnDestinationChain() public {
+        PriceFeedProxy(priceFeedProxy).updatePrice();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -172,8 +211,7 @@ contract sOIL is ERC20, ReentrancyGuard {
     // WTI crude oil has 8 decimals
     // For consistency the result would have 18 decimals
     function getUsdAmountFromOil(uint256 amountOilInWei) public view returns (uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(crudeOilUsdPriceFeed);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        int256 price = PriceFeedProxy(priceFeedProxy).getLatestPrice();
         return (amountOilInWei * (uint256(price) * ADDITIONAL_FEED_PRECISION)) / PRECISION;
     }
 
@@ -226,9 +264,9 @@ contract sOIL is ERC20, ReentrancyGuard {
         return s_collateralPerUser[user][collateral];
     }
 
-    /*
-    * @dev Calculate the health factor of a user in USD, by adding collateral in ETH and DAI and dividing by the minted oil in USD
-    */
+    /**
+     * @dev Calculate the health factor of a user in USD, by adding collateral in ETH and DAI and dividing by the minted oil in USD
+     */
     function _calculateHealthFactor(uint256 oilMintedValueUsd, uint256 totalCollateralValueInUsd)
         internal
         pure
