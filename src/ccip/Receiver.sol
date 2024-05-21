@@ -8,10 +8,10 @@ import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.s
  * @notice receive WTI Crude Oil price from another chain
  */
 contract MessageReceiver is CCIPReceiver {
-    bytes32 latestMessageId;
-    uint64 latestSourceChainSelector;
-    address latestSender;
-    int256 oilPrice;
+    bytes32 s_latestMessageId;
+    uint64 s_latestSourceChainSelector;
+    address s_latestSender;
+    int256 public s_oilPrice;
 
     event MessageReceived(
         bytes32 latestMessageId, uint64 latestSourceChainSelector, address latestSender, int256 oilPrice
@@ -20,15 +20,11 @@ contract MessageReceiver is CCIPReceiver {
     constructor(address router) CCIPReceiver(router) {}
 
     function _ccipReceive(Client.Any2EVMMessage memory message) internal override onlyRouter {
-        latestMessageId = message.messageId;
-        latestSourceChainSelector = message.sourceChainSelector;
-        latestSender = abi.decode(message.sender, (address));
-        oilPrice = abi.decode(message.data, (int256));
+        s_latestMessageId = message.messageId;
+        s_latestSourceChainSelector = message.sourceChainSelector;
+        s_latestSender = abi.decode(message.sender, (address));
+        s_oilPrice = abi.decode(message.data, (int256));
 
-        emit MessageReceived(latestMessageId, latestSourceChainSelector, latestSender, oilPrice);
-    }
-
-    function getLatestMessageDetails() public view returns (bytes32, uint64, address, int256) {
-        return (latestMessageId, latestSourceChainSelector, latestSender, oilPrice);
+        emit MessageReceived(s_latestMessageId, s_latestSourceChainSelector, s_latestSender, s_oilPrice);
     }
 }

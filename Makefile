@@ -2,6 +2,14 @@
 
 NETWORK_ARGS := --rpc-url http://localhost:8545 --private-key $(DEFAULT_ANVIL_PRIVATE_KEY) --broadcast
 
+ifeq ($(findstring --network op_sepolia,$(ARGS)),--network op_sepolia)
+	NETWORK_ARGS := --rpc-url $(OP_SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(OPTIMISM_SCAN_API_KEY) -vvvv
+endif
+
+ifeq ($(findstring --network fuji,$(ARGS)),--network fuji)
+	NETWORK_ARGS := --rpc-url $(FUJI_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast -vvvv
+endif
+
 ifeq ($(findstring --network amoy,$(ARGS)),--network amoy)
 	NETWORK_ARGS := --rpc-url $(AMOY_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(POLYSCAN_API_KEY) -vvvv
 endif
@@ -23,8 +31,6 @@ deploy_dai:
 	@forge script script/DeployTokenMocks.s.sol:DeployDaiMock $(NETWORK_ARGS)
 
 deploy_oil:
-	echo $(AMOY_RPC_URL)
-	echo $(SEPOLIA_RPC_URL)
 	@forge script script/Deploy_sOIL.s.sol:Deploy_sOIL $(NETWORK_ARGS)
 
 # Remove modules

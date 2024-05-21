@@ -9,28 +9,29 @@ import {MockV3Aggregator} from "../mocks/MockV3Aggregator.sol";
 import {ERC20Mock} from "../mocks/ERC20Mock.sol";
 
 contract sOILTest is Test {
-    sOIL public sOILInstance;
-    HelperConfig public helperConfig;
+    sOIL sOILInstance;
+    HelperConfig helperConfig;
 
-    address public wethUsdPriceFeed;
-    address public daiUsdPriceFeed;
-    address public crudeOilUsdPriceFeed;
-    address public weth;
-    address public dai;
-    uint256 public deployerKey;
+    address wethUsdPriceFeed;
+    address daiUsdPriceFeed;
+    address crudeOilUsdPriceFeed;
+    address link;
+    address weth;
+    address dai;
+    uint256 deployerKey;
 
-    address public user = makeAddr("User");
-    address public liquidator = makeAddr("Liquidator");
+    address user = makeAddr("User");
+    address liquidator = makeAddr("Liquidator");
 
-    uint256 public constant STARTING_DAI_BALANCE = 75e18;
-    uint256 public constant STARTING_WETH_BALANCE = 0.025 ether;
-    uint256 public constant MINT_OIL_AMOUNT = 1e10;
-    uint256 public constant HALF_MINT_OIL_AMOUNT = 0.5e18;
+    uint256 constant STARTING_DAI_BALANCE = 75e18;
+    uint256 constant STARTING_WETH_BALANCE = 0.025 ether;
+    uint256 constant MINT_OIL_AMOUNT = 1e10;
+    uint256 constant HALF_MINT_OIL_AMOUNT = 0.5e18;
 
     function setUp() public {
         Deploy_sOIL deployer = new Deploy_sOIL();
         (sOILInstance, helperConfig) = deployer.run();
-        (wethUsdPriceFeed, daiUsdPriceFeed, crudeOilUsdPriceFeed, weth, dai, deployerKey) =
+        (wethUsdPriceFeed, daiUsdPriceFeed, crudeOilUsdPriceFeed,,, link, weth, dai, deployerKey) =
             helperConfig.activeNetworkConfig();
 
         ERC20Mock(weth).mint(user, STARTING_WETH_BALANCE);
@@ -70,7 +71,7 @@ contract sOILTest is Test {
         feedAddresses.push(daiUsdPriceFeed);
 
         vm.expectRevert(sOIL.sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch.selector);
-        new sOIL(crudeOilUsdPriceFeed, tokenAddresses, feedAddresses);
+        new sOIL(makeAddr("priceFeedProxy"), tokenAddresses, feedAddresses, 0);
     }
 
     function test_depositWethAndMint() public {

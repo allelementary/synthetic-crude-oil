@@ -17,8 +17,8 @@ contract sOIL is ERC20, ReentrancyGuard {
     error sOIL__NeedsMoreThanZero();
     error sOIL__BreaksHealthFactor(uint256 healthFactor);
 
-    address private priceFeedProxy;
-    uint64 public chainSelector;
+    address private s_priceFeedProxy;
+    uint64 public s_chainSelector;
 
     uint256 private constant LIQUIDATION_TRESHOLD = 67; // For 150% overcollateralized | 80 for 125%
     uint256 private constant LIQUIDATION_BONUS = 10; // This means you'll get assets with 10% discount when liquidating
@@ -36,7 +36,6 @@ contract sOIL is ERC20, ReentrancyGuard {
     ///////////////////
     // Events
     ///////////////////
-    // todo: do we need more events? Liquidated, burned, minted?
     event CollateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
     event CollateralRedeemed(address indexed redeemFrom, address indexed redeemTo, address token, uint256 amount);
     event PositionLiquidated(
@@ -77,8 +76,8 @@ contract sOIL is ERC20, ReentrancyGuard {
             revert sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
         }
 
-        priceFeedProxy = _priceFeedProxy;
-        chainSelector = _chainSelector;
+        s_priceFeedProxy = _priceFeedProxy;
+        s_chainSelector = _chainSelector;
         for (uint256 i = 0; i < collateralAddresses.length; i++) {
             s_priceFeeds[collateralAddresses[i]] = priceFeedAddresses[i];
             s_collateralTokens.push(collateralAddresses[i]);
@@ -179,17 +178,12 @@ contract sOIL is ERC20, ReentrancyGuard {
     /**
      *
      * @param destinationChainSelector ChainSelector of the destination chain the price should be updated at
-     * @param payFeesIn LINK or Native, 0 for LINK, 1 for Native
+     * @param payFeesIn LINK or Native, 0 for Native, 1 for LINK
      */
-    function requestCrudeOilPriceUpdateOnDestinationChain(
-        uint64 destinationChainSelector,
-        MessageSender.PayFeesIn payFeesIn
-    ) public {
-        PriceFeedProxy(priceFeedProxy).requestPrice(destinationChainSelector, payFeesIn);
-    }
-
-    function updateCrudeOilPriceOnDestinationChain() public {
-        PriceFeedProxy(priceFeedProxy).updatePrice();
+    function updateCrudeOilPriceOnDestinationChain(uint64 destinationChainSelector, MessageSender.PayFeesIn payFeesIn)
+        public
+    {
+        PriceFeedProxy(s_priceFeedProxy).updatePrice(destinationChainSelector, payFeesIn);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -211,8 +205,12 @@ contract sOIL is ERC20, ReentrancyGuard {
     // WTI crude oil has 8 decimals
     // For consistency the result would have 18 decimals
     function getUsdAmountFromOil(uint256 amountOilInWei) public view returns (uint256) {
-        int256 price = PriceFeedProxy(priceFeedProxy).getLatestPrice();
+        int256 price = PriceFeedProxy(s_priceFeedProxy).getLatestPrice();
         return (amountOilInWei * (uint256(price) * ADDITIONAL_FEED_PRECISION)) / PRECISION;
+    }
+
+    function getCrudeOilPrice() public view returns (int256) {
+        return PriceFeedProxy(s_priceFeedProxy).getLatestPrice();
     }
 
     function getUsdAmountFromToken(address collateral, uint256 tokenAmountInWei)
@@ -276,5 +274,13 @@ contract sOIL is ERC20, ReentrancyGuard {
         uint256 collateralAdjustedForThreshold =
             (totalCollateralValueInUsd * LIQUIDATION_TRESHOLD) / LIQUIDATION_PRECISION;
         return (collateralAdjustedForThreshold * PRECISION) / oilMintedValueUsd;
+    }
+
+    function getEstimatedFeeAmount(uint64 destinationChainSelector, MessageSender.PayFeesIn payFeesIn)
+        external
+        view
+        returns (uint256)
+    {
+        return PriceFeedProxy(s_priceFeedProxy).getEstimatedFeeAmount(destinationChainSelector, payFeesIn);
     }
 }

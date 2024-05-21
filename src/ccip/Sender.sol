@@ -50,11 +50,12 @@ contract MessageSender {
         emit MessageSent(messageId);
     }
 
-    function getFee(uint64 destinationChainSelector, address receiver, int256 oilPrice, PayFeesIn payFeesIn)
-        external
-        view
-        returns (uint256)
-    {
+    function getEstimatedFeeAmount(
+        uint64 destinationChainSelector,
+        address receiver,
+        int256 oilPrice,
+        PayFeesIn payFeesIn
+    ) external view returns (uint256) {
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: abi.encode(receiver),
             data: abi.encode(oilPrice),

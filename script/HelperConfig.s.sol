@@ -4,8 +4,9 @@ pragma solidity 0.8.25;
 import {Script} from "forge-std/Script.sol";
 import {MockV3Aggregator} from "../test/mocks/MockV3Aggregator.sol";
 import {ERC20Mock} from "../test/mocks/ERC20Mock.sol";
+import {ChainConfig} from "./ChainConfig.s.sol";
 
-contract HelperConfig is Script {
+contract HelperConfig is Script, ChainConfig {
     NetworkConfig public activeNetworkConfig;
 
     uint8 public constant DECIMALS = 8;
@@ -28,17 +29,13 @@ contract HelperConfig is Script {
     uint256 private DEFAULT_ANVIL_PRIVATE_KEY = vm.envUint("DEFAULT_ANVIL_PRIVATE_KEY");
 
     constructor() {
-        if (block.chainid == 80002) {
-            // polygon amoy
+        if (block.chainid == POLYGON_AMOY_CHAIN_ID) {
             activeNetworkConfig = getAmoyConfig();
-        } else if (block.chainid == 43113) {
-            // avalanche fuji
+        } else if (block.chainid == AVALANCHE_FUJI_CHAIN_ID) {
             activeNetworkConfig = getFujiConfig();
-        } else if (block.chainid == 11155420) {
-            // optimism sepolia
+        } else if (block.chainid == OPTIMISM_SEPOLIA_CHAIN_ID) {
             activeNetworkConfig = getOptimismSepoliaConfig();
-        } else if (block.chainid == 11155111) {
-            // ethereum sepolia
+        } else if (block.chainid == ETHEREUM_SEPOLIA_CHAIN_ID) {
             activeNetworkConfig = getEthSepoliaConfig();
         } else {
             activeNetworkConfig = getOrCreateAnvilConfig();
@@ -81,8 +78,8 @@ contract HelperConfig is Script {
             ccipRouter: 0xF694E193200268f9a4868e4Aa017A0118C9a8177,
             ChainSelector: 14767482510784806043,
             link: 0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846,
-            weth: 0xdd13E55209Fd76AfE204dBda4007C227904f0a81,
-            dai: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063,
+            weth: 0x9991D14b93CD58fE8dD1A5a901608f18664225Ff,
+            dai: 0xC49E3c2b119026500cC442DA8D7c34316a1D3cF1,
             deployerKey: vm.envUint("PRIVATE_KEY")
         });
     }
@@ -116,13 +113,12 @@ contract HelperConfig is Script {
 
         ERC20Mock linkMock = new ERC20Mock("LINK", "LINK", msg.sender, 0);
 
-        MockV3Aggregator crudeOilUsdPriceFeed = new MockV3Aggregator(DECIMALS, CRUDE_OIL_USD_PRICE);
         vm.stopBroadcast();
 
         anvilNetworkConfig = NetworkConfig({
             wethUsdPriceFeed: address(wethUsdPriceFeed),
             daiUsdPriceFeed: address(daiUsdPriceFeed),
-            crudeOilUsdPriceFeed: address(crudeOilUsdPriceFeed),
+            crudeOilUsdPriceFeed: address(0),
             ccipRouter: address(0),
             ChainSelector: 0,
             link: address(linkMock),
