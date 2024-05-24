@@ -7,6 +7,7 @@ Tokenized Crude Oil smart contract provides broader access to trading and invest
 Collateral: WETH / DAI
 Stability Mechanism: Algorithmic
 Using: Chainlink price feeds, Chainlink CCIP
+Available at: Optimism Sepolia, Avalanche Fuji, Polygon Amoy
 
 Synthetic Crude Oil Token (sOIL) is not backed by a real-world commodity but rather by other cryptocurrencies, specifically WETH and DAI. DAI was chosen over other stablecoins because of its decentralized nature.
 
@@ -19,3 +20,7 @@ The liquidation mechanism ensures that the asset's value closely aligns with its
 In our case, we aim for the synthetic crude oil token (sOIL) to mirror the value of real crude oil. To achieve this, users must maintain collateral assets exceeding the value of the sOIL they have minted. Due to the volatility of the underlying assets, a 1:1 collateral-to-token ratio would likely result in frequent liquidations. Therefore, over-collateralization is required.
 
 If the health factor of a position drops below a specific threshold—for instance, if the collateral value falls below 150% of the sOIL value (a 1:1.5 ratio)—other users can liquidate that position. In the liquidation process, the minted sOIL is burned, and the liquidator receives the underlying collateral at a 10% discount as a reward. This discount incentivizes liquidators to maintain the system's stability.
+
+### Cross-chain data transfer
+
+As WTI Crude Oil Price Feed is available only on Optimism Sepolia testnet, Chainlink CCIP is used to deliver price on other networks.

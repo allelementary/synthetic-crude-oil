@@ -7,7 +7,8 @@ import {MessageSender} from "./ccip/Sender.sol";
 import {ChainConfig} from "../script/ChainConfig.s.sol";
 
 /**
- * @notice This contract would fetch WTI Crude Oil price. As the price is not available for all networks,
+ * @notice This contract would fetch WTI Crude Oil price.
+ * As the price is not available only on Optimism Sepolia,
  * it would use different mechanisms depending on the network.
  * Chainlink Price Feeds on Optimism would be used as a price source.
  * For other networks the data would be transferred trough Chainlink CCIP.
@@ -20,6 +21,13 @@ contract PriceFeedProxy is ChainConfig {
     address private s_receiver; // Amoy/Fuji
 
     int256 public WTI_CRUDE_OIL_PRICE;
+
+    modifier onlyOptimismSepolia() {
+        if (block.chainid != OPTIMISM_SEPOLIA_CHAIN_ID) {
+            revert PriceFeedProxy__InvalidChainId();
+        }
+        _;
+    }
 
     constructor(address _crudeOilUsdPriceFeed, address payable _sender, address _receiver) {
         s_crudeOilUsdPriceFeed = _crudeOilUsdPriceFeed;
@@ -43,34 +51,28 @@ contract PriceFeedProxy is ChainConfig {
 
     /**
      * @notice run on Source Chain
-     * @notice call message sender to request WTI Crude Oil price | OP Sepolia
+     * @notice call message sender to request WTI Crude Oil price
      * function is available only on Optimism Sepolia (Source Chain)
      * @param destinationChainSelector ChainSelector of the destination chain the price should be updated at
-     * @param payFeesIn LINK or Native, 0 for Native, 1 for LINK
      */
-    function updatePrice(uint64 destinationChainSelector, MessageSender.PayFeesIn payFeesIn) external {
-        if (block.chainid != OPTIMISM_SEPOLIA_CHAIN_ID) {
-            revert PriceFeedProxy__InvalidChainId();
-        }
+    function updatePrice(uint64 destinationChainSelector) external payable onlyOptimismSepolia {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_crudeOilUsdPriceFeed);
         (, int256 price,,,) = priceFeed.latestRoundData();
-        MessageSender(s_sender).send(destinationChainSelector, s_receiver, price, payFeesIn);
+        MessageSender(s_sender).send(destinationChainSelector, s_receiver, price);
     }
 
     /**
      * @notice run on Source Chain
-     * @notice call to get estimated fee amount for sending WTI Crude Oil price | OP Sepolia
+     * @notice call to get estimated fee amount for sending WTI Crude Oil price
+     * function is available only on Optimism Sepolia (Source Chain)
      * @param destinationChainSelector ChainSelector of the destination chain the price should be updated at
-     * @param payFeesIn LINK or Native, 0 for LINK, 1 for Native
      */
-    function getEstimatedFeeAmount(uint64 destinationChainSelector, MessageSender.PayFeesIn payFeesIn)
+    function getEstimatedFeeAmount(uint64 destinationChainSelector)
         external
         view
+        onlyOptimismSepolia
         returns (uint256)
     {
-        if (block.chainid != OPTIMISM_SEPOLIA_CHAIN_ID) {
-            revert PriceFeedProxy__InvalidChainId();
-        }
-        return MessageSender(s_sender).getEstimatedFeeAmount(destinationChainSelector, s_receiver, 0, payFeesIn);
+        return MessageSender(s_sender).getEstimatedFeeAmount(destinationChainSelector, s_receiver, 0);
     }
 }

@@ -7,7 +7,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {PriceFeedProxy} from "./PriceFeedProxy.sol";
-import {MessageSender} from "./ccip/Sender.sol";
 
 contract sOIL is ERC20, ReentrancyGuard {
     error sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
@@ -16,6 +15,7 @@ contract sOIL is ERC20, ReentrancyGuard {
     error sOIL__TokenNotAllowed(address token);
     error sOIL__NeedsMoreThanZero();
     error sOIL__BreaksHealthFactor(uint256 healthFactor);
+    error sOIL__OilPriceHasToBeUpdated();
 
     address private s_priceFeedProxy;
     uint64 public s_chainSelector;
@@ -93,7 +93,6 @@ contract sOIL is ERC20, ReentrancyGuard {
         emit CollateralDeposited(msg.sender, collateral, amountCollateral);
     }
 
-    // just deposit without minting oil
     function depositCollateral(address collateral, uint256 amount) public isAllowedToken(collateral) nonReentrant {
         s_collateralPerUser[msg.sender][collateral] += amount;
         bool success = IERC20(collateral).transferFrom(msg.sender, address(this), amount);
@@ -124,7 +123,6 @@ contract sOIL is ERC20, ReentrancyGuard {
         emit OilBurned(msg.sender, amountOilToBurn);
     }
 
-    // maybe just run redeem with 0 amount to burn
     function redeem(address collateral, uint256 amountCollateralToRedeem)
         external
         isAllowedToken(collateral)
@@ -165,10 +163,10 @@ contract sOIL is ERC20, ReentrancyGuard {
         if (startingUserHealthFactor >= MIN_HEALTH_FACTOR) {
             revert sOIL__HealthFactorOk();
         }
-        uint256 oilUsdToCover = getUsdAmountFromOil(oilAmountToCover); // 0.5 oil == $50
-        uint256 bonusCollateral = (oilUsdToCover * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION; // $5
+        uint256 oilUsdToCover = getUsdAmountFromOil(oilAmountToCover);
+        uint256 bonusCollateral = (oilUsdToCover * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
 
-        uint256 amountCollateralToRedeem = getTokenAmountFromUsd(collateral, oilUsdToCover + bonusCollateral); // $55 of weth
+        uint256 amountCollateralToRedeem = getTokenAmountFromUsd(collateral, oilUsdToCover + bonusCollateral);
         _burnOil(user, msg.sender, oilAmountToCover);
         _redeem(user, msg.sender, collateral, amountCollateralToRedeem);
 
@@ -178,12 +176,9 @@ contract sOIL is ERC20, ReentrancyGuard {
     /**
      *
      * @param destinationChainSelector ChainSelector of the destination chain the price should be updated at
-     * @param payFeesIn LINK or Native, 0 for Native, 1 for LINK
      */
-    function updateCrudeOilPriceOnDestinationChain(uint64 destinationChainSelector, MessageSender.PayFeesIn payFeesIn)
-        public
-    {
-        PriceFeedProxy(s_priceFeedProxy).updatePrice(destinationChainSelector, payFeesIn);
+    function updateCrudeOilPriceOnDestinationChain(uint64 destinationChainSelector) public payable {
+        PriceFeedProxy(s_priceFeedProxy).updatePrice(destinationChainSelector);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -201,11 +196,16 @@ contract sOIL is ERC20, ReentrancyGuard {
         (uint256 totalOilMintedValueInUsd, uint256 totalCollateralValueInUsd) = getAccountInformationValue(user);
         return _calculateHealthFactor(totalOilMintedValueInUsd, totalCollateralValueInUsd);
     }
+    /**
+     *
+     * @notice WTI crude oil has 8 decimals For consistency the result would have 18 decimals
+     */
 
-    // WTI crude oil has 8 decimals
-    // For consistency the result would have 18 decimals
     function getUsdAmountFromOil(uint256 amountOilInWei) public view returns (uint256) {
         int256 price = PriceFeedProxy(s_priceFeedProxy).getLatestPrice();
+        if (price == 0) {
+            revert sOIL__OilPriceHasToBeUpdated();
+        }
         return (amountOilInWei * (uint256(price) * ADDITIONAL_FEED_PRECISION)) / PRECISION;
     }
 
@@ -263,7 +263,7 @@ contract sOIL is ERC20, ReentrancyGuard {
     }
 
     /**
-     * @dev Calculate the health factor of a user in USD, by adding collateral in ETH and DAI and dividing by the minted oil in USD
+     * @notice Calculate the health factor of a user in USD, by adding collateral in ETH and DAI and dividing by the minted oil in USD
      */
     function _calculateHealthFactor(uint256 oilMintedValueUsd, uint256 totalCollateralValueInUsd)
         internal
@@ -276,11 +276,7 @@ contract sOIL is ERC20, ReentrancyGuard {
         return (collateralAdjustedForThreshold * PRECISION) / oilMintedValueUsd;
     }
 
-    function getEstimatedFeeAmount(uint64 destinationChainSelector, MessageSender.PayFeesIn payFeesIn)
-        external
-        view
-        returns (uint256)
-    {
-        return PriceFeedProxy(s_priceFeedProxy).getEstimatedFeeAmount(destinationChainSelector, payFeesIn);
+    function getEstimatedFeeAmount(uint64 destinationChainSelector) external view returns (uint256) {
+        return PriceFeedProxy(s_priceFeedProxy).getEstimatedFeeAmount(destinationChainSelector);
     }
 }

@@ -23,7 +23,6 @@ contract Deploy_sOIL is Script, ChainConfig {
             address crudeOilUsdPriceFeed,
             address ccipRouter,
             uint64 ChainSelector,
-            address link,
             address weth,
             address dai,
             uint256 deployerKey
@@ -37,7 +36,7 @@ contract Deploy_sOIL is Script, ChainConfig {
         vm.startBroadcast(deployerKey);
         // Deploy MessageSender on Source Chain
         if (block.chainid == OPTIMISM_SEPOLIA_CHAIN_ID) {
-            MessageSender messageSender = new MessageSender(ccipRouter, link);
+            MessageSender messageSender = new MessageSender(ccipRouter);
             messageSenderAddress = payable(address(messageSender));
         }
 

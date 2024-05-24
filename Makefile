@@ -11,7 +11,7 @@ ifeq ($(findstring --network fuji,$(ARGS)),--network fuji)
 endif
 
 ifeq ($(findstring --network amoy,$(ARGS)),--network amoy)
-	NETWORK_ARGS := --rpc-url $(AMOY_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(POLYSCAN_API_KEY) -vvvv
+	NETWORK_ARGS := --rpc-url $(AMOY_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast
 endif
 
 ifeq ($(findstring --network sepolia,$(ARGS)),--network sepolia)

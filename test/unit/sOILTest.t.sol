@@ -31,7 +31,7 @@ contract sOILTest is Test {
     function setUp() public {
         Deploy_sOIL deployer = new Deploy_sOIL();
         (sOILInstance, helperConfig) = deployer.run();
-        (wethUsdPriceFeed, daiUsdPriceFeed, crudeOilUsdPriceFeed,,, link, weth, dai, deployerKey) =
+        (wethUsdPriceFeed, daiUsdPriceFeed, crudeOilUsdPriceFeed,,, weth, dai, deployerKey) =
             helperConfig.activeNetworkConfig();
 
         ERC20Mock(weth).mint(user, STARTING_WETH_BALANCE);

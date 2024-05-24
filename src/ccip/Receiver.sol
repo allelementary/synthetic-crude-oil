@@ -5,7 +5,7 @@ import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 
 /**
- * @notice receive WTI Crude Oil price from another chain
+ * @notice receive WTI Crude Oil price from Source Chain (OP Sepolia)
  */
 contract MessageReceiver is CCIPReceiver {
     bytes32 s_latestMessageId;
