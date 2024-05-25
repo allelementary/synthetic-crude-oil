@@ -15,7 +15,6 @@ contract sOILTest is Test {
     address wethUsdPriceFeed;
     address daiUsdPriceFeed;
     address crudeOilUsdPriceFeed;
-    address link;
     address weth;
     address dai;
     uint256 deployerKey;
@@ -31,7 +30,7 @@ contract sOILTest is Test {
     function setUp() public {
         Deploy_sOIL deployer = new Deploy_sOIL();
         (sOILInstance, helperConfig) = deployer.run();
-        (wethUsdPriceFeed, daiUsdPriceFeed, crudeOilUsdPriceFeed,,, weth, dai, deployerKey) =
+        (wethUsdPriceFeed, daiUsdPriceFeed, crudeOilUsdPriceFeed,, weth, dai, deployerKey) =
             helperConfig.activeNetworkConfig();
 
         ERC20Mock(weth).mint(user, STARTING_WETH_BALANCE);
@@ -71,7 +70,7 @@ contract sOILTest is Test {
         feedAddresses.push(daiUsdPriceFeed);
 
         vm.expectRevert(sOIL.sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch.selector);
-        new sOIL(makeAddr("priceFeedProxy"), tokenAddresses, feedAddresses, 0);
+        new sOIL(crudeOilUsdPriceFeed, tokenAddresses, feedAddresses);
     }
 
     function test_depositWethAndMint() public {

@@ -8,6 +8,8 @@ import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.s
  * @notice send WTI Crude Oil price to Destination Chain (Amoy/Fuji)
  */
 contract MessageSender {
+    error MessageSender__InsufficientFunds();
+
     address immutable i_router;
 
     event MessageSent(bytes32 messageId);
@@ -33,7 +35,11 @@ contract MessageSender {
 
         uint256 fee = IRouterClient(i_router).getFee(destinationChainSelector, message);
 
-        messageId = IRouterClient(i_router).ccipSend{value: fee}(destinationChainSelector, message);
+        if (msg.value < fee) {
+            revert MessageSender__InsufficientFunds();
+        }
+
+        messageId = IRouterClient(i_router).ccipSend{value: msg.value}(destinationChainSelector, message);
 
         emit MessageSent(messageId);
     }

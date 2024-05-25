@@ -6,8 +6,13 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {PriceFeedProxy} from "./PriceFeedProxy.sol";
+import {MessageSender} from "./ccip/Sender.sol";
 
+/**
+ * @title Synthetic Crude Oil Token (sOIL)
+ * @author Mikhail Antonov
+ * @notice sOIL contract for Source Chain that have access to the WTI Crude Oil price feed
+ */
 contract sOIL is ERC20, ReentrancyGuard {
     error sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
     error sOIL__TransferFailed();
@@ -15,10 +20,8 @@ contract sOIL is ERC20, ReentrancyGuard {
     error sOIL__TokenNotAllowed(address token);
     error sOIL__NeedsMoreThanZero();
     error sOIL__BreaksHealthFactor(uint256 healthFactor);
-    error sOIL__OilPriceHasToBeUpdated();
 
-    address private s_priceFeedProxy;
-    uint64 public s_chainSelector;
+    address private s_crudeOilUsdPriceFeed;
 
     uint256 private constant LIQUIDATION_TRESHOLD = 67; // For 150% overcollateralized | 80 for 125%
     uint256 private constant LIQUIDATION_BONUS = 10; // This means you'll get assets with 10% discount when liquidating
@@ -67,17 +70,15 @@ contract sOIL is ERC20, ReentrancyGuard {
     }
 
     constructor(
-        address _priceFeedProxy,
+        address _s_crudeOilUsdPriceFeed,
         address[] memory collateralAddresses,
-        address[] memory priceFeedAddresses,
-        uint64 _chainSelector
+        address[] memory priceFeedAddresses
     ) ERC20("Synthetic Crude Oil", "sOIL") {
         if (collateralAddresses.length != priceFeedAddresses.length) {
             revert sOIL__CollateralAddressesAndPriceFeedAddressesAmountsDontMatch();
         }
 
-        s_priceFeedProxy = _priceFeedProxy;
-        s_chainSelector = _chainSelector;
+        s_crudeOilUsdPriceFeed = _s_crudeOilUsdPriceFeed;
         for (uint256 i = 0; i < collateralAddresses.length; i++) {
             s_priceFeeds[collateralAddresses[i]] = priceFeedAddresses[i];
             s_collateralTokens.push(collateralAddresses[i]);
@@ -173,14 +174,6 @@ contract sOIL is ERC20, ReentrancyGuard {
         emit PositionLiquidated(msg.sender, user, collateral, amountCollateralToRedeem, oilAmountToCover);
     }
 
-    /**
-     *
-     * @param destinationChainSelector ChainSelector of the destination chain the price should be updated at
-     */
-    function updateCrudeOilPriceOnDestinationChain(uint64 destinationChainSelector) public payable {
-        PriceFeedProxy(s_priceFeedProxy).updatePrice(destinationChainSelector);
-    }
-
     /*//////////////////////////////////////////////////////////////
                              VIEW AND PURE
     //////////////////////////////////////////////////////////////*/
@@ -196,21 +189,20 @@ contract sOIL is ERC20, ReentrancyGuard {
         (uint256 totalOilMintedValueInUsd, uint256 totalCollateralValueInUsd) = getAccountInformationValue(user);
         return _calculateHealthFactor(totalOilMintedValueInUsd, totalCollateralValueInUsd);
     }
+
     /**
      *
      * @notice WTI crude oil has 8 decimals For consistency the result would have 18 decimals
      */
-
-    function getUsdAmountFromOil(uint256 amountOilInWei) public view returns (uint256) {
-        int256 price = PriceFeedProxy(s_priceFeedProxy).getLatestPrice();
-        if (price == 0) {
-            revert sOIL__OilPriceHasToBeUpdated();
-        }
+    function getUsdAmountFromOil(uint256 amountOilInWei) public view virtual returns (uint256) {
+        int256 price = getCrudeOilPrice();
         return (amountOilInWei * (uint256(price) * ADDITIONAL_FEED_PRECISION)) / PRECISION;
     }
 
-    function getCrudeOilPrice() public view returns (int256) {
-        return PriceFeedProxy(s_priceFeedProxy).getLatestPrice();
+    function getCrudeOilPrice() public view virtual returns (int256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_crudeOilUsdPriceFeed);
+        (, int256 price,,,) = priceFeed.latestRoundData();
+        return price;
     }
 
     function getUsdAmountFromToken(address collateral, uint256 tokenAmountInWei)
@@ -274,9 +266,5 @@ contract sOIL is ERC20, ReentrancyGuard {
         uint256 collateralAdjustedForThreshold =
             (totalCollateralValueInUsd * LIQUIDATION_TRESHOLD) / LIQUIDATION_PRECISION;
         return (collateralAdjustedForThreshold * PRECISION) / oilMintedValueUsd;
-    }
-
-    function getEstimatedFeeAmount(uint64 destinationChainSelector) external view returns (uint256) {
-        return PriceFeedProxy(s_priceFeedProxy).getEstimatedFeeAmount(destinationChainSelector);
     }
 }
