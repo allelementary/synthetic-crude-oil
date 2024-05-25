@@ -63,8 +63,8 @@ contract HelperConfig is Script, ChainConfig {
         config = DestinationChainConfig({
             avalancheFujiChainSelector: 14767482510784806043,
             polygonAmoyChainSelector: 16281711391670634445,
-            avalancheFujiReceiver: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7,
-            polygonAmoyReceiver: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7
+            avalancheFujiReceiver: 0xd6a80097825cB7957bD8bdA9676f8aDae35265BC,
+            polygonAmoyReceiver: 0x98243Ace02e8bF668f7a565b5bc6E79BF584a768
         });
     }
 
