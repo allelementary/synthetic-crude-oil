@@ -4,10 +4,10 @@ Tokenized Crude Oil smart contract provides broader access to trading and invest
 
 ## About
 
-**Collateral**: WETH / DAI
-**Stability** Mechanism: Algorithmic
-**Using**: Chainlink price feeds, Chainlink CCIP
-**Available** at: Optimism Sepolia, Avalanche Fuji, Polygon Amoy
+- **Collateral**: WETH / DAI
+- **Stability** Mechanism: Algorithmic
+- **Using**: Chainlink price feeds, Chainlink CCIP
+- **Available at**: Optimism Sepolia, Avalanche Fuji, Polygon Amoy
 
 Synthetic Crude Oil Token (sOIL) is not backed by a real-world commodity but rather by other cryptocurrencies, specifically WETH and DAI. DAI was chosen over other stablecoins because of its decentralized nature.
 
