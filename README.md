@@ -5,7 +5,7 @@ Tokenized Crude Oil smart contract provides broader access to trading and invest
 ## About
 
 - **Collateral**: WETH / DAI
-- **Stability** Mechanism: Algorithmic
+- **Stability Mechanism**: Algorithmic
 - **Using**: Chainlink price feeds, Chainlink CCIP
 - **Available at**: Optimism Sepolia, Avalanche Fuji, Polygon Amoy
 
