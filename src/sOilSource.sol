@@ -12,6 +12,7 @@ import {MessageSender} from "./ccip/Sender.sol";
  */
 contract sOilSource is sOIL {
     error sOIL__ChainSelectorsAndMessageReceiversAmountsDontMatch();
+    error sOIL__InvalidSenderAddress();
 
     address payable public s_sender;
 
@@ -28,7 +29,9 @@ contract sOilSource is sOIL {
         if (chainSelectors.length != _messageReceivers.length) {
             revert sOIL__ChainSelectorsAndMessageReceiversAmountsDontMatch();
         }
-
+        if (_s_sender == address(0)) {
+            revert sOIL__InvalidSenderAddress();
+        }
         s_sender = _s_sender;
         for (uint256 i = 0; i < chainSelectors.length; i++) {
             s_messageReceivers[chainSelectors[i]] = _messageReceivers[i];
@@ -39,7 +42,7 @@ contract sOilSource is sOIL {
      * @dev Function to update the Crude Oil price on the destination chain
      * @param destinationChainSelector ChainSelector of the destination chain the price should be updated at
      */
-    function updateCrudeOilPriceOnDestinationChain(uint64 destinationChainSelector) public payable {
+    function updateCrudeOilPriceOnDestinationChain(uint64 destinationChainSelector) external payable {
         int256 price = getCrudeOilPrice();
         MessageSender(s_sender).send{value: msg.value}(
             destinationChainSelector, s_messageReceivers[destinationChainSelector], price
@@ -50,7 +53,7 @@ contract sOilSource is sOIL {
      * @dev Function estimates the fee amount for updating the Crude Oil price on the destination chain
      * @param destinationChainSelector ChainSelector of the destination chain the price should be updated at
      */
-    function getEstimatedFeeAmount(uint64 destinationChainSelector) public view returns (uint256) {
+    function getEstimatedFeeAmount(uint64 destinationChainSelector) external view returns (uint256) {
         return MessageSender(s_sender).getEstimatedFeeAmount(
             destinationChainSelector, s_messageReceivers[destinationChainSelector], 0
         );

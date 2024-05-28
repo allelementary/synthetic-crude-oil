@@ -12,6 +12,7 @@ import {MessageReceiver} from "./ccip/Receiver.sol";
  * and would need to rely on the Source Chain to update the price
  */
 contract sOilDestination is sOIL {
+    error sOIL__InvalidReceiverAddress();
     error sOIL__OilPriceHasToBeUpdated();
 
     address public s_receiver;
@@ -19,6 +20,9 @@ contract sOilDestination is sOIL {
     constructor(address _receiver, address[] memory collateralAddresses, address[] memory priceFeedAddresses)
         sOIL(address(0), collateralAddresses, priceFeedAddresses)
     {
+        if (_receiver == address(0)) {
+            revert sOIL__InvalidReceiverAddress();
+        }
         s_receiver = _receiver;
     }
 

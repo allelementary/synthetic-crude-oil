@@ -33,8 +33,26 @@ deploy_dai:
 deploy_oil:
 	@forge script script/Deploy_sOIL.s.sol:Deploy_sOIL $(NETWORK_ARGS)
 
+all: clean remove install update build
+
+# Clean the repo
+clean  :; forge clean
+
 # Remove modules
 remove :; rm -rf .gitmodules && rm -rf .git/modules/* && rm -rf lib && touch .gitmodules && git add . && git commit -m "modules"
+
 # Install modules
 install :; forge install cyfrin/foundry-devops --no-commit && forge install smartcontractkit/chainlink-brownie-contracts@0.8.0 --no-commit && forge install foundry-rs/forge-std --no-commit && forge install openzeppelin/openzeppelin-contracts --no-commit && forge install cyfrin/ccip-contracts@1.4.0 --no-commit
 
+# Update Dependencies
+update:; forge update
+
+build:; forge build
+
+test :; forge test 
+
+snapshot :; forge snapshot
+
+format :; forge fmt
+
+aderyn :; aderyn .
