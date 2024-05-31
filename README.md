@@ -88,3 +88,35 @@ It would deploy CCIP `Receiver.sol` and `sOilDestination` contracts for each cha
 ```bash
 make deploy_oil ARGS='--network op_sepolia'
 ```
+
+### sOIL Contract Addresses
+
+Optimism Sepolia: 0x929072C633F56E61391cB183EFbb5f1dA86Dc56a
+Avalanche Fuji: 0x9774c3ed1dEC3F0829290E0616e2BFb1Cc26A75D
+Polygon Amoy: 0x0cCe7D1668C3A72E8d5F6f3bDF7Bc6606f03D262
+
+### Custom token addresses
+
+For the project custom ERC-20 tokens are used to represent WETH and DAI
+
+**Optimism Sepolia**
+- WETH: 0x387FD5E4Ea72cF66f8eA453Ed648e64908f64104
+- DAI: 0xaf9B15aA0557cff606a0616d9B76B94887423022
+
+**Avalanche Fuji**
+- WETH: 0x9991D14b93CD58fE8dD1A5a901608f18664225Ff
+- DAI: 0xC49E3c2b119026500cC442DA8D7c34316a1D3cF1
+
+**Polygon Amoy**
+- WETH: 0x387FD5E4Ea72cF66f8eA453Ed648e64908f64104
+- DAI: 0xaf9B15aA0557cff606a0616d9B76B94887423022
+
+
+
+### Mint WETH and DAI tokens
+
+To mint tokens for testing execute following command:
+
+```
+cast send <token-address> "mint(address,uint256)" <wallet-address> <amount-in-wei> --private-key <private_key> --rpc-url <rpc_url>
+```
