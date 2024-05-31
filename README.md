@@ -1,5 +1,11 @@
 # Synthetic Crude Oil Token
 
+<br/>
+<p align="center">
+<img src="./sOil-icon.webp" width="400" alt="sOil-icon">
+</p>
+<br/>
+
 Tokenized Crude Oil smart contract provides broader access to trading and investment opportunities. It enables fractional trading of crude oil assets, reducing barriers and bypassing bureaucratic restrictions, allowing for more efficient and inclusive participation.
 
 ## About
