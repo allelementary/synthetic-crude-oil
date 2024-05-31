@@ -85,6 +85,12 @@ contract sOIL is ERC20, ReentrancyGuard {
         }
     }
 
+    /**
+     * @notice Deposits a specified amount of collateral and mints the Synthetic Crude Oil tokens
+     * @param collateral The address of the collateral token
+     * @param amountCollateral The amount of collateral to deposit
+     * @param amountToMint The amount of Synthetic Crude Oil tokens to mint
+     */
     function depositAndMint(address collateral, uint256 amountCollateral, uint256 amountToMint)
         external
         isAllowedToken(collateral)
@@ -94,6 +100,12 @@ contract sOIL is ERC20, ReentrancyGuard {
         emit CollateralDeposited(msg.sender, collateral, amountCollateral);
     }
 
+    /**
+     * @notice Deposits a specified amount of collateral into the contract
+     * @dev It can be used to improve the health factor of the user's position
+     * @param collateral The address of the collateral token
+     * @param amount The amount of collateral to deposit
+     */
     function depositCollateral(address collateral, uint256 amount) public isAllowedToken(collateral) nonReentrant {
         s_collateralPerUser[msg.sender][collateral] += amount;
         bool success = IERC20(collateral).transferFrom(msg.sender, address(this), amount);
@@ -104,6 +116,11 @@ contract sOIL is ERC20, ReentrancyGuard {
         emit CollateralDeposited(msg.sender, collateral, amount);
     }
 
+    /**
+     * @notice Mints a specified amount of Synthetic Crude Oil tokens
+     * @dev This function increases the minted token balance for the user and checks the health factor to ensure it is not broken
+     * @param amountToMint The amount of Synthetic Crude Oil tokens to mint
+     */
     function mintOil(uint256 amountToMint) public {
         s_oilMintedPerUser[msg.sender] += amountToMint;
         revertIfHealthFactorIsBroken(msg.sender);
@@ -112,6 +129,12 @@ contract sOIL is ERC20, ReentrancyGuard {
         emit OilMinted(msg.sender, amountToMint);
     }
 
+    /**
+     * @notice Redeems a specified amount of collateral and burns the specified amount of Synthetic Crude Oil tokens
+     * @param collateral The address of the collateral token
+     * @param amountCollateralToRedeem The amount of collateral to redeem
+     * @param amountOilToBurn The amount of Synthetic Crude Oil tokens to burn
+     */
     function redeemAndBurn(address collateral, uint256 amountCollateralToRedeem, uint256 amountOilToBurn)
         external
         isAllowedToken(collateral)
@@ -124,6 +147,12 @@ contract sOIL is ERC20, ReentrancyGuard {
         emit OilBurned(msg.sender, amountOilToBurn);
     }
 
+    /**
+     * @notice Redeems a specified amount of collateral without burning any Synthetic Crude Oil tokens
+     * @dev This function can be used to free up extra collateral assets
+     * @param collateral The address of the collateral token
+     * @param amountCollateralToRedeem The amount of collateral to redeem
+     */
     function redeem(address collateral, uint256 amountCollateralToRedeem)
         external
         isAllowedToken(collateral)
@@ -133,6 +162,13 @@ contract sOIL is ERC20, ReentrancyGuard {
         _redeem(msg.sender, msg.sender, collateral, amountCollateralToRedeem);
     }
 
+    /**
+     * @notice Redeems a specified amount of collateral
+     * @param from The address from which the collateral is redeemed
+     * @param to The address to which the redeemed collateral is transferred
+     * @param collateral The address of the collateral token
+     * @param amountCollateralToRedeem The amount of collateral to redeem
+     */
     function _redeem(address from, address to, address collateral, uint256 amountCollateralToRedeem) private {
         s_collateralPerUser[from][collateral] -= amountCollateralToRedeem;
         revertIfHealthFactorIsBroken(from);
@@ -142,6 +178,11 @@ contract sOIL is ERC20, ReentrancyGuard {
         }
     }
 
+    /**
+     * @notice Burns a specified amount of Synthetic Crude Oil tokens without redeeming any collateral
+     * @dev This function can be used to improve the health factor of the user's position
+     * @param amountOilToBurn The amount of Synthetic Crude Oil tokens to burn
+     */
     function burn(uint256 amountOilToBurn) public moreThanZero(amountOilToBurn) {
         _burnOil(msg.sender, msg.sender, amountOilToBurn);
         revertIfHealthFactorIsBroken(msg.sender);
@@ -149,11 +190,26 @@ contract sOIL is ERC20, ReentrancyGuard {
         emit OilBurned(msg.sender, amountOilToBurn);
     }
 
+    /**
+     * @notice Burns a specified amount of Synthetic Crude Oil tokens from a user's balance
+     * @dev This private function decreases the minted token balance for the user and burns
+     *      the specified amount of tokens from the liquidator's balance
+     * @param user The address of the user whose minted balance will be decreased
+     * @param liquidator The address from whose balance the tokens will be burned
+     * @param amountOilToBurn The amount of Synthetic Crude Oil tokens to burn
+     */
     function _burnOil(address user, address liquidator, uint256 amountOilToBurn) private {
         s_oilMintedPerUser[user] -= amountOilToBurn;
         _burn(liquidator, amountOilToBurn);
     }
 
+    /**
+     * @notice Liquidates a user's position if their health factor is below the minimum threshold
+     * @dev liquidator receives 10% bonus of underlying collateral assets
+     * @param user The address of the user whose position is to be liquidated
+     * @param collateral The address of the collateral token
+     * @param oilAmountToCover The amount of Synthetic Crude Oil tokens to cover the debt
+     */
     function liquidate(address user, address collateral, uint256 oilAmountToCover)
         external
         isAllowedToken(collateral)
@@ -191,7 +247,6 @@ contract sOIL is ERC20, ReentrancyGuard {
     }
 
     /**
-     *
      * @notice WTI crude oil has 8 decimals For consistency the result would have 18 decimals
      */
     function getUsdAmountFromOil(uint256 amountOilInWei) public view virtual returns (uint256) {
