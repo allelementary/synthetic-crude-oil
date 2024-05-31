@@ -91,9 +91,9 @@ make deploy_oil ARGS='--network op_sepolia'
 
 ### sOIL Contract Addresses
 
-Optimism Sepolia: 0x929072C633F56E61391cB183EFbb5f1dA86Dc56a
-Avalanche Fuji: 0x9774c3ed1dEC3F0829290E0616e2BFb1Cc26A75D
-Polygon Amoy: 0x0cCe7D1668C3A72E8d5F6f3bDF7Bc6606f03D262
+- Optimism Sepolia: 0x929072C633F56E61391cB183EFbb5f1dA86Dc56a
+- Avalanche Fuji: 0x9774c3ed1dEC3F0829290E0616e2BFb1Cc26A75D
+- Polygon Amoy: 0x0cCe7D1668C3A72E8d5F6f3bDF7Bc6606f03D262
 
 ### Custom token addresses
 
