@@ -58,7 +58,14 @@ make test
 
 ### Deploy Source (OP Sepolia) and Destination (Avalanche Fuji, Polygon Amoy) contracts
 
-1. First Deploy sOIL on destination chains:
+1. Add parameters to .env:
+   - PRIVATE_KEY
+   - OPTIMISM_SCAN_API_KEY
+   - OP_SEPOLIA_RPC_URL
+   - FUJI_RPC_URL
+   - AMOY_RPC_URL
+
+2. First Deploy sOIL on destination chains:
 
 ```bash
 make deploy_oil ARGS='--network fuji'
@@ -68,7 +75,7 @@ make deploy_oil ARGS='--network amoy'
 
 It would deploy CCIP `Receiver.sol` and `sOilDestination` contracts for each chain
 
-2. Update `script/HelperConfig.sol` receiver contract addresses:
+3. Update `script/HelperConfig.sol` receiver contract addresses:
 
 ```diff
     function getDestinationChainConfig() public pure returns (DestinationChainConfig memory config) {
@@ -83,7 +90,7 @@ It would deploy CCIP `Receiver.sol` and `sOilDestination` contracts for each cha
     }
 ```
 
-3. Deploy sOIL on source chain:
+4. Deploy sOIL on source chain:
 
 ```bash
 make deploy_oil ARGS='--network op_sepolia'
@@ -117,6 +124,6 @@ For the project custom ERC-20 tokens are used to represent WETH and DAI
 
 To mint tokens for testing execute following command:
 
-```
+```bash
 cast send <token-address> "mint(address,uint256)" <wallet-address> <amount-in-wei> --private-key <private_key> --rpc-url <rpc_url>
 ```

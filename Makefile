@@ -1,5 +1,7 @@
 -include .env
 
+.PHONY: all test clean deploy_oil install format
+
 NETWORK_ARGS := --rpc-url http://localhost:8545 --private-key $(DEFAULT_ANVIL_PRIVATE_KEY) --broadcast
 
 ifeq ($(findstring --network op_sepolia,$(ARGS)),--network op_sepolia)
